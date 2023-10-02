@@ -1,0 +1,5 @@
+development:
+  dialect: postgres
+  datasource: host=localhost dbname=mightyblade user=mightyblade password=mightyblade sslmode=disable
+  dir: internal/infrastructure/migrations
+  table: migrations
