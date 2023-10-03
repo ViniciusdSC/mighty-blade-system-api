@@ -1,7 +1,20 @@
 package main
 
-import "fmt"
+import (
+	"github.com/ViniciusdSC/mighty-blade-system-api/internal/api/handlers"
+	"github.com/gin-gonic/gin"
+)
 
 func main() {
-	fmt.Println("Hello World!")
+	r := gin.Default()
+
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": true,
+		})
+	})
+
+	handlers.AddInRouter(r)
+
+	r.Run()
 }
