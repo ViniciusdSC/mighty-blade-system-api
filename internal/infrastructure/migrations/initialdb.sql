@@ -44,7 +44,7 @@ CREATE TYPE "conjuration_item_buff" AS ENUM (
 );
 
 CREATE TABLE "ability" (
-  "id" uuid PRIMARY KEY NOT NULL,
+  "id" uuid PRIMARY key NOT NULL DEFAULT gen_random_uuid (),
   "prerequisite" uuid,
   "name" varchar NOT NULL,
   "type" ability_type NOT NULL,
@@ -63,7 +63,7 @@ CREATE TABLE "attribute" (
 );
 
 CREATE TABLE "race" (
-  "id" uuid PRIMARY KEY,
+  "id" uuid PRIMARY KEY NOT NULL DEFAULT gen_random_uuid (),
   "attribute_id" uuid NOT NULL,
   "name" varchar NOT NULL,
   "biology" text NOT NULL,
@@ -71,14 +71,14 @@ CREATE TABLE "race" (
 );
 
 CREATE TABLE "race_ability" (
-  "id" uuid PRIMARY KEY,
+  "id" uuid PRIMARY KEY NOT NULL DEFAULT gen_random_uuid (),
   "ability_id" uuid,
   "race_id" uuid,
   "is_default" boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE "kind" (
-  "id" uuid PRIMARY KEY,
+  "id" uuid PRIMARY KEY NOT NULL DEFAULT gen_random_uuid (),
   "attribute_id" uuid,
   "name" varchar NOT NULL,
   "description" text NOT NULL,
@@ -86,22 +86,25 @@ CREATE TABLE "kind" (
 );
 
 CREATE TABLE "kind_ability" (
-  "id" uuid PRIMARY KEY,
+  "id" uuid PRIMARY KEY NOT NULL DEFAULT gen_random_uuid (),
   "ability_id" uuid,
   "kind_id" uuid
 );
 
 CREATE TABLE "item" (
-  "id" uuid PRIMARY KEY,
+  "id" uuid PRIMARY KEY NOT NULL DEFAULT gen_random_uuid (),
   "name" varchar NOT NULL,
   "price" int NOT NULL,
   "weight" float NOT NULL,
   "description" varchar NOT NULL,
-  "type" item_type NOT NULL
+  "type" item_type NOT NULL,
+  "created_at" timestamp NOT NULL,
+  "updated_at" timestamp NOT NULL,
+  "deleted_at" timestamp
 );
 
 CREATE TABLE "weapon" (
-  "id" uuid PRIMARY KEY,
+  "id" uuid PRIMARY KEY NOT NULL DEFAULT gen_random_uuid (),
   "damage" int NOT NULL,
   "type" weapon_type NOT NULL,
   "one_hand_fn" int,
@@ -111,20 +114,20 @@ CREATE TABLE "weapon" (
 );
 
 CREATE TABLE "armor" (
-  "id" uuid PRIMARY KEY,
+  "id" uuid PRIMARY KEY NOT NULL DEFAULT gen_random_uuid (),
   "defense" int NOT NULL,
   "fn" int NOT NULL,
   "type" armor_type NOT NULL
 );
 
 CREATE TABLE "conjuration_item" (
-  "id" uuid PRIMARY KEY,
+  "id" uuid PRIMARY KEY NOT NULL DEFAULT gen_random_uuid (),
   "fn" int NOT NULL,
   "buff" conjuration_item_buff[] NOT NULL
 );
 
 CREATE TABLE "potion" (
-  "id" uuid PRIMARY KEY,
+  "id" uuid PRIMARY KEY NOT NULL DEFAULT gen_random_uuid (),
   "event" varchar NOT NULL
 );
 

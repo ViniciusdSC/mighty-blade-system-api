@@ -6,12 +6,16 @@ type (
 		GetUser() string
 		GetPassword() string
 		GetDatabaseName() string
-		GetPort() string
-		SSLMode() string
+		GetPort() int
+		GetSSLMode() bool
 	}
 
 	dbConfig struct{}
 )
+
+func NewDBConfig() DBConfig {
+	return dbConfig{}
+}
 
 func (dbc dbConfig) GetHost() string {
 	return getEnvWithDefaults("DB_HOST", "localhost")
