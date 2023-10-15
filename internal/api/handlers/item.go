@@ -5,8 +5,8 @@ import (
 
 	"github.com/ViniciusdSC/mighty-blade-system-api/internal/api/models"
 	"github.com/ViniciusdSC/mighty-blade-system-api/internal/api/services"
+	"github.com/ViniciusdSC/mighty-blade-system-api/internal/presenters"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type (
@@ -43,45 +43,54 @@ func (ihd itemHandler) getItem(c *gin.Context) {
 
 	if !ok {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Something is wrong",
+			"message": "System was not able to get item ID",
 		})
 		return
 	}
 
-	u, _ := uuid.Parse(id)
-
-	model, err := ihd.itemService.FindOne(u)
+	model, err := ihd.itemService.FindOne(id)
 
 	if err != nil {
 		c.JSON(500, gin.H{
 			"message": "test",
 		})
+		return
 	}
 
 	c.JSON(200, gin.H{
 		"id": model,
 	})
-	return
-
-	// u, err := uuid.Parse(id)
-
-	// if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{
-	// 		"message": "Something is wrong",
-	// 	})
-	// 	return
-	// }
-
-	// model, err := ihd.itemService.FindOne(u)
-
-	// c.JSON(200, model)
-	// return
 }
 
 func (ihd itemHandler) listItems(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"status": true,
-	})
+	var filter services.ItemFilter
+	err := c.BindQuery(&filter)
+
+	if err != nil {
+		c.JSON(500, err)
+		return
+	}
+
+	count, err := ihd.itemService.Count(filter)
+	if err != nil {
+		c.JSON(500, err)
+		return
+	}
+
+	// items, err := ihd.itemService.Find(filter)
+	// if err != nil {
+	// 	c.JSON(500, err)
+	// 	return
+	// }
+
+	response := presenters.PresenterPagination[models.ItemModel]{
+		Page:    *filter.Page,
+		PerPage: *filter.PerPage,
+		Total:   *count,
+		Items:   []models.ItemModel{},
+	}
+
+	c.JSON(200, response)
 }
 
 func (ihd itemHandler) createItem(c *gin.Context) {
@@ -107,7 +116,6 @@ func (ihd itemHandler) createItem(c *gin.Context) {
 		"status": true,
 		"result": im,
 	})
-	return
 }
 
 func (ihd itemHandler) updateItem(c *gin.Context) {

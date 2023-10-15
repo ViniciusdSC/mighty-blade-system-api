@@ -5,8 +5,8 @@ import (
 	"github.com/ViniciusdSC/mighty-blade-system-api/internal/api/services"
 	"github.com/ViniciusdSC/mighty-blade-system-api/internal/infrastructure/config"
 	dbconnection "github.com/ViniciusdSC/mighty-blade-system-api/internal/infrastructure/db-connection"
+	"github.com/ViniciusdSC/mighty-blade-system-api/internal/infrastructure/validation"
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 )
 
 func main() {
@@ -27,7 +27,7 @@ func main() {
 		})
 	})
 
-	v := validator.New(validator.WithRequiredStructEnabled())
+	v := validation.NewValidator()
 	itemService := services.NewItemService(v, conn)
 	h := handlers.CreateHandlers(itemService)
 
