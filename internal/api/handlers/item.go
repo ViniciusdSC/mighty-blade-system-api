@@ -1,22 +1,19 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/ViniciusdSC/mighty-blade-system-api/internal/api/models"
 	"github.com/ViniciusdSC/mighty-blade-system-api/internal/api/services"
 	"github.com/ViniciusdSC/mighty-blade-system-api/internal/presenters"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type (
 	ItemHandler interface {
-		AddInRouter(r *gin.Engine)
-		getItem(c *gin.Context)
-		listItems(c *gin.Context)
-		createItem(c *gin.Context)
-		updateItem(c *gin.Context)
-		deleteItem(c *gin.Context)
+		Route(r *gin.Engine)
 	}
 
 	itemHandler struct {
@@ -30,70 +27,65 @@ func NewItemHandler(itemService services.ItemService) ItemHandler {
 	}
 }
 
-func (ih itemHandler) AddInRouter(r *gin.Engine) {
-	r.GET("/item", ih.listItems)
-	r.GET("/item/:id", ih.getItem)
-	r.POST("/item", ih.createItem)
-	r.PUT("/item/:id", ih.updateItem)
-	r.DELETE("/item/:id", ih.deleteItem)
+func (ih itemHandler) Route(r *gin.Engine) {
+	r.GET("/item/:id", ih.addItemModelToContext, handlerToRoute(ih.getItem))
+	r.GET("/item", handlerToRoute(ih.listItems))
+	r.POST("/item", handlerToRoute(ih.createItem))
+	r.PATCH("/item/:id", ih.addItemModelToContext, handlerToRoute(ih.updateItem))
+	r.DELETE("/item/:id", ih.addItemModelToContext, handlerToRoute(ih.deleteItem))
 }
 
-func (ihd itemHandler) getItem(c *gin.Context) {
-	id, ok := c.Params.Get("id")
+func (ihd itemHandler) getItem(c *gin.Context) (*handlerResponse[models.ItemModel], error) {
+	model, _ := c.Get("model")
 
-	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "System was not able to get item ID",
-		})
-		return
-	}
+	body := model.(*models.ItemModel)
 
-	model, err := ihd.itemService.FindOne(id)
-
-	if err != nil {
-		c.JSON(500, gin.H{
-			"message": "test",
-		})
-		return
-	}
-
-	c.JSON(200, gin.H{
-		"id": model,
-	})
+	return &handlerResponse[models.ItemModel]{
+		status: http.StatusOK,
+		body:   body,
+	}, nil
 }
 
-func (ihd itemHandler) listItems(c *gin.Context) {
+func (ihd itemHandler) listItems(c *gin.Context) (*handlerResponse[presenters.PresenterPagination[models.ItemModel]], error) {
 	var filter services.ItemFilter
 	err := c.BindQuery(&filter)
 
 	if err != nil {
-		c.JSON(500, err)
-		return
+		return nil, err
+	}
+
+	if filter.Page == nil {
+		filter.Page = new(int)
+		*filter.Page = 1
+	}
+
+	if filter.PerPage == nil {
+		filter.PerPage = new(int)
+		*filter.PerPage = 10
 	}
 
 	count, err := ihd.itemService.Count(filter)
 	if err != nil {
-		c.JSON(500, err)
-		return
+		return nil, err
 	}
 
-	// items, err := ihd.itemService.Find(filter)
-	// if err != nil {
-	// 	c.JSON(500, err)
-	// 	return
-	// }
-
-	response := presenters.PresenterPagination[models.ItemModel]{
-		Page:    *filter.Page,
-		PerPage: *filter.PerPage,
-		Total:   *count,
-		Items:   []models.ItemModel{},
+	items, err := ihd.itemService.Find(filter)
+	if err != nil {
+		return nil, err
 	}
 
-	c.JSON(200, response)
+	return &handlerResponse[presenters.PresenterPagination[models.ItemModel]]{
+		status: http.StatusOK,
+		body: &presenters.PresenterPagination[models.ItemModel]{
+			Page:    filter.Page,
+			PerPage: filter.PerPage,
+			Total:   *count,
+			Items:   items,
+		},
+	}, nil
 }
 
-func (ihd itemHandler) createItem(c *gin.Context) {
+func (ihd itemHandler) createItem(c *gin.Context) (*handlerResponse[any], error) {
 	var im models.ItemModel
 
 	c.Bind(&im)
@@ -101,31 +93,77 @@ func (ihd itemHandler) createItem(c *gin.Context) {
 	err := ihd.itemService.Validate(&im)
 
 	if err != nil {
-		c.JSON(err.Status, err)
-		return
+		return nil, err
 	}
 
 	dbErr := ihd.itemService.Create(&im)
 
 	if dbErr != nil {
-		c.JSON(http.StatusInternalServerError, dbErr)
+		return nil, err
+	}
+
+	return &handlerResponse[any]{
+		status: http.StatusCreated,
+	}, nil
+}
+
+func (ihd itemHandler) updateItem(c *gin.Context) (*handlerResponse[any], error) {
+	var im models.ItemModel
+
+	c.Bind(&im)
+
+	err := ihd.itemService.Validate(&im, "required")
+	if err != nil {
+		return nil, err
+	}
+
+	model, _ := c.Get("model")
+
+	dbErr := ihd.itemService.Update(model.(*models.ItemModel), &im)
+	if dbErr != nil {
+		return nil, dbErr
+	}
+
+	return &handlerResponse[any]{
+		status: http.StatusOK,
+	}, nil
+}
+
+func (ihd itemHandler) deleteItem(c *gin.Context) (*handlerResponse[any], error) {
+	model, _ := c.Get("model")
+
+	err := ihd.itemService.Delete(model.(*models.ItemModel))
+	if err != nil {
+		return nil, err
+	}
+
+	return &handlerResponse[any]{
+		status: http.StatusOK,
+	}, nil
+}
+
+func (ihd itemHandler) addItemModelToContext(c *gin.Context) {
+	id, exists := c.Params.Get("id")
+
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "request should have ID in their path",
+		})
 		return
 	}
 
-	c.JSON(200, gin.H{
-		"status": true,
-		"result": im,
-	})
-}
+	model, err := ihd.itemService.FindOne(id)
 
-func (ihd itemHandler) updateItem(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"status": true,
-	})
-}
+	if err == nil {
+		c.Set("model", model)
+		c.Next()
+		return
+	}
 
-func (ihd itemHandler) deleteItem(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"status": true,
-	})
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.Status(http.StatusNotFound)
+		return
+	}
+
+	c.JSON(http.StatusInternalServerError, err)
 }

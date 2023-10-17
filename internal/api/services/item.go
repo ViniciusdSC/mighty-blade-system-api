@@ -19,13 +19,13 @@ type (
 	}
 
 	ItemService interface {
-		Validate(model *models.ItemModel, ignoreRules ...string) *presenters.PresenterValidationErrors
+		Validate(model *models.ItemModel, ignoreRules ...string) error
 		Find(filter ItemFilter) ([]models.ItemModel, error)
 		Count(filter ItemFilter) (*int64, error)
 		FindOne(id string) (*models.ItemModel, error)
 		Create(model *models.ItemModel) error
-		// Update(id uuid.UUID, model *models.ItemModel) error
-		// Delete(id uuid.UUID) error
+		Update(model *models.ItemModel, values *models.ItemModel) error
+		Delete(model *models.ItemModel) error
 	}
 
 	itemService struct {
@@ -41,11 +41,11 @@ func NewItemService(validator *validation.AppValidate, conn *gorm.DB) ItemServic
 	}
 }
 
-func (is itemService) Validate(model *models.ItemModel, ignoreRules ...string) *presenters.PresenterValidationErrors {
+func (is itemService) Validate(model *models.ItemModel, ignoreRules ...string) error {
 	err := is.validator.StructExceptRules(model, ignoreRules...)
 
 	if err != nil {
-		response := presenters.PresenterValidationErrors{
+		response := presenters.ValidationError{
 			Message: "Validation Errors",
 			Status:  http.StatusUnprocessableEntity,
 			Errors:  []presenters.PresenterValidationErr{},
@@ -58,11 +58,15 @@ func (is itemService) Validate(model *models.ItemModel, ignoreRules ...string) *
 			})
 		}
 
-		return &response
+		if len(response.Errors) == 0 {
+			return nil
+		}
+
+		return response
 	}
 
 	if !model.ItemTypeIsValid() {
-		return &presenters.PresenterValidationErrors{
+		return presenters.ValidationError{
 			Message: "Validation Errors",
 			Status:  http.StatusUnprocessableEntity,
 			Errors: []presenters.PresenterValidationErr{
@@ -86,7 +90,7 @@ func (is itemService) Create(model *models.ItemModel) error {
 func (is itemService) FindOne(id string) (*models.ItemModel, error) {
 	var model models.ItemModel
 
-	result := is.conn.First(&model).Where("id = ?", id)
+	result := is.conn.Where("id = ?", id).First(&model)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -100,7 +104,7 @@ func (is itemService) Find(filter ItemFilter) ([]models.ItemModel, error) {
 
 	result := is.conn.
 		Scopes(is.filterScope(filter), PaginationScope(filter.Page, filter.PerPage)).
-		Find(items)
+		Find(&items)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -121,16 +125,28 @@ func (is itemService) Count(filter ItemFilter) (*int64, error) {
 	return &count, nil
 }
 
+func (is itemService) Update(model *models.ItemModel, values *models.ItemModel) error {
+	result := is.conn.Model(&model).Updates(values)
+
+	return result.Error
+}
+
+func (is itemService) Delete(model *models.ItemModel) error {
+	result := is.conn.Delete(&model)
+
+	return result.Error
+}
+
+// solve connection bug
 func (is itemService) filterScope(filter ItemFilter) func(conn *gorm.DB) *gorm.DB {
+	fmt.Println(*filter.Type)
 	return func(conn *gorm.DB) *gorm.DB {
-		if filter.Name != nil && len(*filter.Name) > 3 {
-			conn = conn.Where("name LIKE ?", filter.Name)
+		if filter.Name != nil && len(*filter.Name) >= 3 {
+			conn = conn.Where("name LIKE ?", "%"+*filter.Name+"%")
 		}
 
-		fmt.Println("type", filter.Type)
-
 		if filter.Type != nil {
-			conn = conn.Where("type = ?", filter.Type)
+			conn = conn.Where("type = ?", *filter.Type)
 		}
 
 		return conn

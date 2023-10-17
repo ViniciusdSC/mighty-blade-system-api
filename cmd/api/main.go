@@ -28,10 +28,10 @@ func main() {
 	})
 
 	v := validation.NewValidator()
-	itemService := services.NewItemService(v, conn)
-	h := handlers.CreateHandlers(itemService)
+	s := services.NewAppServices(v, conn)
+	h := handlers.NewAppHandler(*s)
 
-	h.IH.AddInRouter(r)
+	h.IH.Route(r)
 
 	r.Run()
 }

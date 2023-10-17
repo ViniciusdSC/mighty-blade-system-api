@@ -1,8 +1,8 @@
 package presenters
 
 type PresenterPagination[T any] struct {
-	Page    int   `json:"page"`
-	PerPage int   `json:"per_page"`
+	Page    *int  `json:"page"`
+	PerPage *int  `json:"per_page"`
 	Total   int64 `json:"total"`
 	Items   []T   `json:"items"`
 }
