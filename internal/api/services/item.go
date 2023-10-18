@@ -1,7 +1,6 @@
 package services
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/ViniciusdSC/mighty-blade-system-api/internal/api/models"
@@ -137,18 +136,17 @@ func (is itemService) Delete(model *models.ItemModel) error {
 	return result.Error
 }
 
-// solve connection bug
 func (is itemService) filterScope(filter ItemFilter) func(conn *gorm.DB) *gorm.DB {
-	fmt.Println(*filter.Type)
 	return func(conn *gorm.DB) *gorm.DB {
+		tx := conn.Session(&gorm.Session{})
 		if filter.Name != nil && len(*filter.Name) >= 3 {
-			conn = conn.Where("name LIKE ?", "%"+*filter.Name+"%")
+			tx = conn.Where("name LIKE ?", "%"+*filter.Name+"%")
 		}
 
 		if filter.Type != nil {
-			conn = conn.Where("type = ?", *filter.Type)
+			tx = conn.Where("type = ?", *filter.Type)
 		}
 
-		return conn
+		return tx
 	}
 }
