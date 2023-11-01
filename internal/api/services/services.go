@@ -9,7 +9,7 @@ type AppServices struct {
 	IS ItemService
 }
 
-func NewAppServices(v *validation.AppValidate, conn *gorm.DB) *AppServices {
+func NewAppServices(v validation.AppValidate, conn *gorm.DB) *AppServices {
 	itemService := NewItemService(v, conn)
 
 	return &AppServices{

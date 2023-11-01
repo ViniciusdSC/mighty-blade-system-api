@@ -28,12 +28,12 @@ type (
 	}
 
 	itemService struct {
-		validator *validation.AppValidate
+		validator validation.AppValidate
 		conn      *gorm.DB
 	}
 )
 
-func NewItemService(validator *validation.AppValidate, conn *gorm.DB) ItemService {
+func NewItemService(validator validation.AppValidate, conn *gorm.DB) ItemService {
 	return itemService{
 		validator,
 		conn,
@@ -55,10 +55,6 @@ func (is itemService) Validate(model *models.ItemModel, ignoreRules ...string) e
 				Tag: vErr.Tag(),
 				Key: vErr.Field(),
 			})
-		}
-
-		if len(response.Errors) == 0 {
-			return nil
 		}
 
 		return response

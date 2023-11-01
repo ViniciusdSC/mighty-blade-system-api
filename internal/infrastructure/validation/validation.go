@@ -3,21 +3,25 @@ package validation
 import "github.com/go-playground/validator/v10"
 
 type (
-	AppValidate struct {
-		validator.Validate
+	appValidate struct {
+		v *validator.Validate
+	}
+
+	AppValidate interface {
+		StructExceptRules(s interface{}, rules ...string) error
 	}
 )
 
-func NewValidator() *AppValidate {
+func NewValidator() AppValidate {
 	v := validator.New(validator.WithRequiredStructEnabled())
 
-	return &AppValidate{
-		Validate: *v,
+	return &appValidate{
+		v,
 	}
 }
 
-func (ap AppValidate) StructExceptRules(s interface{}, rules ...string) error {
-	err := ap.Struct(s)
+func (ap appValidate) StructExceptRules(s interface{}, rules ...string) error {
+	err := ap.v.Struct(s)
 
 	if err == nil {
 		return nil
