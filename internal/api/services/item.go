@@ -4,11 +4,17 @@ import (
 	"net/http"
 
 	"github.com/ViniciusdSC/mighty-blade-system-api/internal/api/models"
+	dbconnection "github.com/ViniciusdSC/mighty-blade-system-api/internal/infrastructure/db-connection"
 	"github.com/ViniciusdSC/mighty-blade-system-api/internal/infrastructure/validation"
 	"github.com/ViniciusdSC/mighty-blade-system-api/internal/presenters"
 	"github.com/go-playground/validator/v10"
 	"gorm.io/gorm"
 )
+
+var itemType map[models.ItemTypeEnum]bool = map[models.ItemTypeEnum]bool{
+	models.ItemTypeGeneral: true,
+	models.ItemTypeWeapon:  true,
+}
 
 type (
 	ItemFilter struct {
@@ -29,11 +35,11 @@ type (
 
 	itemService struct {
 		validator validation.AppValidate
-		conn      *gorm.DB
+		conn      dbconnection.GormDB
 	}
 )
 
-func NewItemService(validator validation.AppValidate, conn *gorm.DB) ItemService {
+func NewItemService(validator validation.AppValidate, conn dbconnection.GormDB) ItemService {
 	return itemService{
 		validator,
 		conn,
@@ -60,7 +66,7 @@ func (is itemService) Validate(model *models.ItemModel, ignoreRules ...string) e
 		return response
 	}
 
-	if !model.ItemTypeIsValid() {
+	if !itemType[model.Type] {
 		return presenters.ValidationError{
 			Message: "Validation Errors",
 			Status:  http.StatusUnprocessableEntity,

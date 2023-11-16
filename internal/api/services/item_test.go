@@ -1,26 +1,42 @@
 package services
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/ViniciusdSC/mighty-blade-system-api/internal/api/models"
-	mock_test "github.com/ViniciusdSC/mighty-blade-system-api/internal/infrastructure/validation/mock"
-	gorm_test "github.com/ViniciusdSC/mighty-blade-system-api/internal/tests/gorm"
+	dbcMocks "github.com/ViniciusdSC/mighty-blade-system-api/internal/infrastructure/db-connection/mocks"
+	vMocks "github.com/ViniciusdSC/mighty-blade-system-api/internal/infrastructure/validation/mocks"
+	"github.com/ViniciusdSC/mighty-blade-system-api/internal/presenters"
+	"github.com/go-playground/validator/v10"
+
 	"github.com/stretchr/testify/suite"
-	"gorm.io/gorm"
 )
 
 type ItemServiceTestSuite struct {
 	suite.Suite
-	conn *gorm.DB
-	v    *mock_test.AppValidateMock
+	conn *dbcMocks.GormDB
+	v    *vMocks.AppValidate
+}
+
+type mockFieldError struct {
+	validator.FieldError
+	tag   string
+	field string
+}
+
+func (mfe mockFieldError) Tag() string {
+	return mfe.tag
+}
+
+func (mfe mockFieldError) Field() string {
+	return mfe.field
 }
 
 func (suite *ItemServiceTestSuite) SetupTest() {
-	suite.conn = gorm_test.CreateGormMock(suite.T())
+	suite.conn = new(dbcMocks.GormDB)
 
-	// suite.v = mock_test.NewAppValidateMock()
-	suite.v = new(mock_test.AppValidateMock)
+	suite.v = new(vMocks.AppValidate)
 }
 
 func (suite *ItemServiceTestSuite) TestNewItemService() {
@@ -34,17 +50,92 @@ func (suite *ItemServiceTestSuite) TestNewItemService() {
 
 // Tests for Validate func
 func (suite *ItemServiceTestSuite) TestValidateReturnNil() {
-	model := new(models.ItemModel)
+	var model *models.ItemModel
+	model = &models.ItemModel{
+		Type: models.ItemTypeGeneral,
+	}
+
 	suite.v.On("StructExceptRules", model).Return(nil)
 
+	is := NewItemService(suite.v, suite.conn)
+
+	err := is.Validate(model)
+
+	suite.Assert().Nil(err)
 }
 
 func (suite *ItemServiceTestSuite) TestValidateWhenItemTypeIsNotValid() {
+	var model *models.ItemModel
+	model = &models.ItemModel{
+		Type: "test",
+	}
 
+	suite.v.On("StructExceptRules", model).Return(nil)
+
+	is := NewItemService(suite.v, suite.conn)
+
+	err := is.Validate(model)
+
+	expectedErr := &presenters.ValidationError{
+		Message: "Validation Errors",
+		Status:  http.StatusUnprocessableEntity,
+		Errors: []presenters.PresenterValidationErr{
+			{
+				Tag: "invalid_type",
+				Key: "type",
+			},
+		},
+	}
+
+	suite.Require().Error(err, "Should not be nil")
+	suite.Require().ErrorAs(err, expectedErr, "Should be validation error")
+
+	vErr := err.(presenters.ValidationError)
+
+	suite.Assert().Equal(expectedErr.Message, vErr.Message)
+	suite.Assert().Equal(expectedErr.Status, vErr.Status)
+	for i := range expectedErr.Errors {
+		suite.Assert().Equal(expectedErr.Errors[i].Key, vErr.Errors[i].Key)
+		suite.Assert().Equal(expectedErr.Errors[i].Tag, vErr.Errors[i].Tag)
+	}
 }
 
 func (suite *ItemServiceTestSuite) TestValidateWhenValidatorRetunsAnError() {
+	var model *models.ItemModel
+	model = &models.ItemModel{
+		Type: models.ItemTypeGeneral,
+	}
 
+	suite.v.On("StructExceptRules", model).Return(validator.ValidationErrors{
+		&mockFieldError{tag: "required", field: "name"},
+	})
+
+	is := NewItemService(suite.v, suite.conn)
+
+	err := is.Validate(model)
+
+	expectedErr := &presenters.ValidationError{
+		Message: "Validation Errors",
+		Status:  http.StatusUnprocessableEntity,
+		Errors: []presenters.PresenterValidationErr{
+			{
+				Tag: "required",
+				Key: "name",
+			},
+		},
+	}
+
+	suite.Require().Error(err, "Should not be nil")
+	suite.Require().ErrorAs(err, expectedErr, "Should be validation error")
+
+	vErr := err.(presenters.ValidationError)
+
+	suite.Assert().Equal(expectedErr.Message, vErr.Message)
+	suite.Assert().Equal(expectedErr.Status, vErr.Status)
+	for i := range expectedErr.Errors {
+		suite.Assert().Equal(expectedErr.Errors[i].Key, vErr.Errors[i].Key)
+		suite.Assert().Equal(expectedErr.Errors[i].Tag, vErr.Errors[i].Tag)
+	}
 }
 
 func TestItemServiceSuite(t *testing.T) {

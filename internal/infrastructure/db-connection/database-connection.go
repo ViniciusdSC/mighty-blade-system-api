@@ -11,7 +11,7 @@ import (
 
 type (
 	DBConnection interface {
-		CreateConnection() (*gorm.DB, error)
+		CreateConnection() (GormDB, error)
 	}
 
 	dbConnection struct {
@@ -25,7 +25,7 @@ func NewDatabaseConnection(dbConfig config.DBConfig) DBConnection {
 	}
 }
 
-func (dbc dbConnection) CreateConnection() (*gorm.DB, error) {
+func (dbc dbConnection) CreateConnection() (GormDB, error) {
 	sslMode := "enabled"
 
 	if !dbc.dbConfig.GetSSLMode() {

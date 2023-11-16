@@ -12,11 +12,6 @@ const (
 	ItemTypeWeapon  ItemTypeEnum = "weapon"
 )
 
-var itemType map[ItemTypeEnum]bool = map[ItemTypeEnum]bool{
-	ItemTypeGeneral: true,
-	ItemTypeWeapon:  true,
-}
-
 type ItemModel struct {
 	gorm.Model
 	ID          uuid.UUID    `gorm:"type:uuid;default:gen_random_uuid()"`
@@ -29,8 +24,4 @@ type ItemModel struct {
 
 func (im ItemModel) TableName() string {
 	return "item"
-}
-
-func (im ItemModel) ItemTypeIsValid() bool {
-	return itemType[im.Type]
 }
