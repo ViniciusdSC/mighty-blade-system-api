@@ -15,8 +15,8 @@ import (
 
 type ItemServiceTestSuite struct {
 	suite.Suite
-	conn *dbcMocks.GormDB
-	v    *vMocks.AppValidate
+	conn *dbcMocks.MockGormDB
+	v    *vMocks.MockAppValidate
 }
 
 type mockFieldError struct {
@@ -34,9 +34,9 @@ func (mfe mockFieldError) Field() string {
 }
 
 func (suite *ItemServiceTestSuite) SetupTest() {
-	suite.conn = new(dbcMocks.GormDB)
+	suite.conn = new(dbcMocks.MockGormDB)
 
-	suite.v = new(vMocks.AppValidate)
+	suite.v = new(vMocks.MockAppValidate)
 }
 
 func (suite *ItemServiceTestSuite) TestNewItemService() {

@@ -1,0 +1,33 @@
+with-expecter: true
+packages:
+    github.com/ViniciusdSC/mighty-blade-system-api/internal/api/services:
+      config:
+        all: true
+        dir: "internal/api/services/mocks"
+        filename: "{{.InterfaceName}}.go"
+    github.com/ViniciusdSC/mighty-blade-system-api/internal/api/models:
+      config:
+        all: true
+        dir: "internal/api/models/mocks"
+        filename: "{{.InterfaceName}}.go"
+    github.com/ViniciusdSC/mighty-blade-system-api/internal/api/handlers:
+      config:
+        all: true
+        dir: "internal/api/handlers/mocks"
+        filename: "{{.InterfaceName}}.go"
+    github.com/ViniciusdSC/mighty-blade-system-api/internal/infrastructure/db-connection:
+      config:
+        all: true
+        dir: "internal/infrastructure/db-connection/mocks"
+        filename: "{{.InterfaceName}}.go"
+    github.com/ViniciusdSC/mighty-blade-system-api/internal/infrastructure/validation:
+      config:
+        all: true
+        dir: "internal/infrastructure/validation/mocks"
+        filename: "{{.InterfaceName}}.go"
+    github.com/ViniciusdSC/mighty-blade-system-api/internal/infrastructure/config:
+      config:
+        all: true
+        dir: "internal/infrastructure/config/mocks"
+        filename: "{{.InterfaceName}}.go"
+

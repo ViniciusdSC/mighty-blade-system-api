@@ -14,3 +14,6 @@ migrate-db-dev: # run migration for developement enviroment
 
 revert-migration-db-dev: # revert migration for development enviroment
 	sql-migrate down -env="development" -config=dbconfig.yml
+
+mockery: # generate all mocks
+	docker run -v "$(PWD)":/src -w /src vektra/mockery
